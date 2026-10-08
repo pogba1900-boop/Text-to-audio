@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Text to Audio</title>
+
+<title>AI Book Reader</title>
 
 <style>
+
 body {
     font-family: Arial, sans-serif;
     background: #f2f2f2;
@@ -14,7 +16,7 @@ body {
 }
 
 .container {
-    max-width: 700px;
+    max-width: 750px;
     margin: auto;
     background: white;
     padding: 25px;
@@ -27,27 +29,40 @@ h1 {
 
 textarea {
     width: 100%;
-    height: 200px;
+    height: 250px;
     padding: 12px;
     box-sizing: border-box;
-    font-size: 18px;
-    margin-bottom: 15px;
+    font-size: 17px;
+    margin-top: 15px;
 }
 
-select, button {
+input[type="file"] {
+    width: 100%;
+    padding: 15px 0;
+}
+
+select,
+button {
     width: 100%;
     padding: 14px;
-    margin-top: 10px;
+    margin-top: 12px;
     font-size: 16px;
     border-radius: 8px;
 }
 
 button {
-    cursor: pointer;
     background: #222;
     color: white;
     border: none;
 }
+
+#status {
+    margin-top: 15px;
+    padding: 10px;
+    background: #eee;
+    border-radius: 8px;
+}
+
 </style>
 </head>
 
@@ -55,33 +70,125 @@ button {
 
 <div class="container">
 
-<h1>🔊 Text to Audio</h1>
+<h1>📖 AI Book Reader</h1>
 
-<textarea id="text" placeholder="Écris ton texte ici..."></textarea>
+<p>📄 Choisir un livre PDF :</p>
+
+<input
+    type="file"
+    id="pdfFile"
+    accept="application/pdf"
+>
+
+<div id="status">
+Aucun PDF sélectionné.
+</div>
+
+<textarea
+    id="text"
+    placeholder="Le texte du livre apparaîtra ici..."
+></textarea>
 
 <select id="language">
-    <option value="fr">🇫🇷 Français</option>
-    <option value="en">🇬🇧 English</option>
-    <option value="de">🇩🇪 Deutsch</option>
-    <option value="es">🇪🇸 Español</option>
-    <option value="it">🇮🇹 Italiano</option>
-    <option value="ar">🇸🇦 العربية</option>
+
+<option value="fr">🇫🇷 Français</option>
+
+<option value="en">🇬🇧 English</option>
+
+<option value="ar">🇸🇦 العربية</option>
+
 </select>
 
 <select id="voice">
-    <option value="">Chargement des voix...</option>
+
+<option value="">Chargement des voix...</option>
+
 </select>
 
-<button onclick="speak()">▶️ Écouter</button>
+<button onclick="speak()">
+▶️ Lire le texte
+</button>
 
 </div>
 
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
 <script>
 
-const languageSelect = document.getElementById("language");
+const pdfFile = document.getElementById("pdfFile");
+
+const textArea = document.getElementById("text");
+
+const status = document.getElementById("status");
+
+const language = document.getElementById("language");
+
 const voiceSelect = document.getElementById("voice");
 
 let voices = [];
+
+
+pdfFile.addEventListener("change", async function() {
+
+    const file = pdfFile.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    status.textContent = "⏳ Lecture du PDF...";
+
+    try {
+
+        const arrayBuffer = await file.arrayBuffer();
+
+        const pdf = await pdfjsLib.getDocument({
+            data: arrayBuffer
+        }).promise;
+
+        let fullText = "";
+
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+
+            status.textContent =
+                "📖 Lecture de la page " +
+                pageNumber +
+                " / " +
+                pdf.numPages;
+
+            const page =
+                await pdf.getPage(pageNumber);
+
+            const content =
+                await page.getTextContent();
+
+            const pageText =
+                content.items
+                .map(item => item.str)
+                .join(" ");
+
+            fullText += pageText + "\n\n";
+        }
+
+        textArea.value = fullText;
+
+        status.textContent =
+            "✅ PDF terminé : " +
+            pdf.numPages +
+            " pages.";
+
+    } catch (error) {
+
+        console.error(error);
+
+        status.textContent =
+            "❌ Impossible de lire ce PDF.";
+
+    }
+
+});
+
 
 function loadVoices() {
 
@@ -89,104 +196,121 @@ function loadVoices() {
 
     voiceSelect.innerHTML = "";
 
-    const language = languageSelect.value.toLowerCase();
+    const selectedLanguage =
+        language.value.toLowerCase();
 
-    const matchingVoices = voices.filter(voice => {
+    const matchingVoices =
+        voices.filter(voice => {
 
-        const voiceLang = voice.lang.toLowerCase();
+            const voiceLanguage =
+                voice.lang.toLowerCase();
 
-        if (language === "ar") {
-            return voiceLang.startsWith("ar");
-        }
+            return voiceLanguage.startsWith(
+                selectedLanguage
+            );
 
-        return voiceLang.startsWith(language);
-    });
+        });
+
 
     if (matchingVoices.length === 0) {
 
-        const option = document.createElement("option");
-
-        if (language === "ar") {
-            option.textContent = "⚠️ Aucune voix arabe détectée";
-        } else {
-            option.textContent = "Aucune voix disponible";
-        }
+        const option =
+            document.createElement("option");
 
         option.value = "";
+
+        option.textContent =
+            "Aucune voix disponible";
+
         voiceSelect.appendChild(option);
 
         return;
     }
 
+
     matchingVoices.forEach(voice => {
 
-        const option = document.createElement("option");
+        const option =
+            document.createElement("option");
 
-        option.value = voices.indexOf(voice);
+        option.value =
+            voices.indexOf(voice);
 
         option.textContent =
-            voice.name + " (" + voice.lang + ")";
+            voice.name +
+            " (" +
+            voice.lang +
+            ")";
 
         voiceSelect.appendChild(option);
 
     });
+
 }
+
 
 function speak() {
 
     const text =
-        document.getElementById("text").value.trim();
+        textArea.value.trim();
 
-    if (text === "") {
+    if (!text) {
 
-        alert("Écris d'abord un texte.");
+        alert("Ajoute d'abord un texte ou un PDF.");
 
         return;
     }
 
-    const language = languageSelect.value;
 
     const speech =
         new SpeechSynthesisUtterance(text);
 
-    const selectedIndex =
+
+    const index =
         parseInt(voiceSelect.value);
 
-    if (!isNaN(selectedIndex) && voices[selectedIndex]) {
 
-        speech.voice = voices[selectedIndex];
+    if (!isNaN(index) && voices[index]) {
 
-        speech.lang = voices[selectedIndex].lang;
+        speech.voice =
+            voices[index];
+
+        speech.lang =
+            voices[index].lang;
 
     } else {
 
-        if (language === "ar") {
-            speech.lang = "ar-SA";
-        } else {
-            speech.lang = language;
-        }
+        speech.lang =
+            language.value;
 
     }
 
+
     speech.rate = 1;
+
     speech.pitch = 1;
+
 
     speechSynthesis.cancel();
 
     speechSynthesis.speak(speech);
+
 }
 
-languageSelect.addEventListener(
+
+language.addEventListener(
     "change",
     loadVoices
 );
 
+
 speechSynthesis.onvoiceschanged =
     loadVoices;
+
 
 loadVoices();
 
 </script>
 
 </body>
-    </html>
+</html>
