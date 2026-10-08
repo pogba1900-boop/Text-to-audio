@@ -1,101 +1,192 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text to Audio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text to Audio</title>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f2f2f2;
-            margin: 0;
-            padding: 20px;
-        }
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    margin: 0;
+    padding: 20px;
+}
 
-        .container {
-            max-width: 700px;
-            margin: auto;
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-        }
+.container {
+    max-width: 700px;
+    margin: auto;
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+}
 
-        h1 {
-            text-align: center;
-        }
+h1 {
+    text-align: center;
+}
 
-        textarea {
-            width: 100%;
-            height: 200px;
-            padding: 12px;
-            box-sizing: border-box;
-            font-size: 18px;
-            margin-bottom: 15px;
-        }
+textarea {
+    width: 100%;
+    height: 200px;
+    padding: 12px;
+    box-sizing: border-box;
+    font-size: 18px;
+    margin-bottom: 15px;
+}
 
-        select, button {
-            width: 100%;
-            padding: 14px;
-            margin-top: 10px;
-            font-size: 16px;
-            border-radius: 8px;
-        }
+select, button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 10px;
+    font-size: 16px;
+    border-radius: 8px;
+}
 
-        button {
-            cursor: pointer;
-            background: #222;
-            color: white;
-            border: none;
-        }
-    </style>
+button {
+    cursor: pointer;
+    background: #222;
+    color: white;
+    border: none;
+}
+</style>
 </head>
 
 <body>
 
 <div class="container">
 
-    <h1>🔊 Text to Audio</h1>
+<h1>🔊 Text to Audio</h1>
 
-    <textarea id="text" placeholder="Écris ton texte ici..."></textarea>
+<textarea id="text" placeholder="Écris ton texte ici..."></textarea>
 
-    <select id="language">
-        <option value="fr-FR">🇫🇷 Français</option>
-        <option value="en-US">🇬🇧 English</option>
-        <option value="de-DE">🇩🇪 Deutsch</option>
-        <option value="es-ES">🇪🇸 Español</option>
-        <option value="it-IT">🇮🇹 Italiano</option>
-        <option value="ar-SA">🇸🇦 العربية</option>
-    </select>
+<select id="language">
+    <option value="fr">🇫🇷 Français</option>
+    <option value="en">🇬🇧 English</option>
+    <option value="de">🇩🇪 Deutsch</option>
+    <option value="es">🇪🇸 Español</option>
+    <option value="it">🇮🇹 Italiano</option>
+    <option value="ar">🇸🇦 العربية</option>
+</select>
 
-    <button onclick="speak()">▶️ Écouter</button>
+<select id="voice">
+    <option value="">Chargement des voix...</option>
+</select>
+
+<button onclick="speak()">▶️ Écouter</button>
 
 </div>
 
 <script>
 
-function speak() {
+const languageSelect = document.getElementById("language");
+const voiceSelect = document.getElementById("voice");
 
-    const text = document.getElementById("text").value;
-    const language = document.getElementById("language").value;
+let voices = [];
 
-    if (text.trim() === "") {
-        alert("Écris d'abord un texte.");
+function loadVoices() {
+
+    voices = speechSynthesis.getVoices();
+
+    voiceSelect.innerHTML = "";
+
+    const language = languageSelect.value.toLowerCase();
+
+    const matchingVoices = voices.filter(voice => {
+
+        const voiceLang = voice.lang.toLowerCase();
+
+        if (language === "ar") {
+            return voiceLang.startsWith("ar");
+        }
+
+        return voiceLang.startsWith(language);
+    });
+
+    if (matchingVoices.length === 0) {
+
+        const option = document.createElement("option");
+
+        if (language === "ar") {
+            option.textContent = "⚠️ Aucune voix arabe détectée";
+        } else {
+            option.textContent = "Aucune voix disponible";
+        }
+
+        option.value = "";
+        voiceSelect.appendChild(option);
+
         return;
     }
 
-    const speech = new SpeechSynthesisUtterance(text);
+    matchingVoices.forEach(voice => {
 
-    speech.lang = language;
+        const option = document.createElement("option");
+
+        option.value = voices.indexOf(voice);
+
+        option.textContent =
+            voice.name + " (" + voice.lang + ")";
+
+        voiceSelect.appendChild(option);
+
+    });
+}
+
+function speak() {
+
+    const text =
+        document.getElementById("text").value.trim();
+
+    if (text === "") {
+
+        alert("Écris d'abord un texte.");
+
+        return;
+    }
+
+    const language = languageSelect.value;
+
+    const speech =
+        new SpeechSynthesisUtterance(text);
+
+    const selectedIndex =
+        parseInt(voiceSelect.value);
+
+    if (!isNaN(selectedIndex) && voices[selectedIndex]) {
+
+        speech.voice = voices[selectedIndex];
+
+        speech.lang = voices[selectedIndex].lang;
+
+    } else {
+
+        if (language === "ar") {
+            speech.lang = "ar-SA";
+        } else {
+            speech.lang = language;
+        }
+
+    }
+
     speech.rate = 1;
     speech.pitch = 1;
 
     speechSynthesis.cancel();
+
     speechSynthesis.speak(speech);
 }
+
+languageSelect.addEventListener(
+    "change",
+    loadVoices
+);
+
+speechSynthesis.onvoiceschanged =
+    loadVoices;
+
+loadVoices();
 
 </script>
 
 </body>
-</html>
+    </html>
