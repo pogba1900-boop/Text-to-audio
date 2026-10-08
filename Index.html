@@ -1,1 +1,101 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Audio</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            box-sizing: border-box;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 10px;
+            font-size: 16px;
+            border-radius: 8px;
+        }
+
+        button {
+            cursor: pointer;
+            background: #222;
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🔊 Text to Audio</h1>
+
+    <textarea id="text" placeholder="Écris ton texte ici..."></textarea>
+
+    <select id="language">
+        <option value="fr-FR">🇫🇷 Français</option>
+        <option value="en-US">🇬🇧 English</option>
+        <option value="de-DE">🇩🇪 Deutsch</option>
+        <option value="es-ES">🇪🇸 Español</option>
+        <option value="it-IT">🇮🇹 Italiano</option>
+        <option value="ar-SA">🇸🇦 العربية</option>
+    </select>
+
+    <button onclick="speak()">▶️ Écouter</button>
+
+</div>
+
+<script>
+
+function speak() {
+
+    const text = document.getElementById("text").value;
+    const language = document.getElementById("language").value;
+
+    if (text.trim() === "") {
+        alert("Écris d'abord un texte.");
+        return;
+    }
+
+    const speech = new SpeechSynthesisUtterance(text);
+
+    speech.lang = language;
+    speech.rate = 1;
+    speech.pitch = 1;
+
+    speechSynthesis.cancel();
+    speechSynthesis.speak(speech);
+}
+
+</script>
+
+</body>
+</html>
